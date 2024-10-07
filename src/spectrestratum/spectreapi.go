@@ -131,7 +131,9 @@ func (sprApi *SpectreApi) startBlockTemplateListener(ctx context.Context, blockR
 
 func (sprApi *SpectreApi) GetBlockTemplate(
 	client *gostratum.StratumContext) (*appmessage.GetBlockTemplateResponseMessage, error) {
-		template, err := sprApi.spectred.GetBlockTemplate(client.WalletAddr,
+	// print to console when function is called
+	fmt.Println("GetBlockTemplate function called")
+	template, err := sprApi.spectred.GetBlockTemplate(client.WalletAddr,
 		fmt.Sprintf(`'%s' via spectre-project/spectre-stratum-bridge_%s`, client.RemoteApp, version))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed fetching new block template from spectre")
