@@ -457,7 +457,7 @@ func (sh *shareHandler) startVardiffThread(expectedShareRate uint, logStats bool
 		sort.Strings(statsLines)
 		stats += strings.Join(statsLines, "\n")
 		stats += "\n\n======================================================== spr_bridge_" + version + " ===\n"
-		stats += "\n" + strings.Join(toleranceErrs, "\n") + "\n\n"
+		stats += strings.Join(toleranceErrs, "\n")
 		if logStats {
 			log.Println(stats)
 		}
