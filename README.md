@@ -23,7 +23,7 @@ Shares-based work allocation with miner-like periodic stat output:
  Total          |      12.62KH/s |          6/0/0 |            6 |   17h36m46s
 -------------------------------------------------------------------------------
  Network Hashrate: 138.40MH/s
-======================================================== spr_bridge_v0.3.18 ===
+======================================================== spr_bridge_v0.3.19 ===
 ```
 
 ## Variable difficulty engine (vardiff)
