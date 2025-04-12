@@ -15,9 +15,10 @@ import (
 type StratumMethod string
 
 const (
-	StratumMethodSubscribe StratumMethod = "mining.subscribe"
-	StratumMethodAuthorize StratumMethod = "mining.authorize"
-	StratumMethodSubmit    StratumMethod = "mining.submit"
+	StratumMethodSubscribe           StratumMethod = "mining.subscribe"
+	StratumMethodExtranonceSubscribe StratumMethod = "mining.extranonce.subscribe"
+	StratumMethodAuthorize           StratumMethod = "mining.authorize"
+	StratumMethodSubmit              StratumMethod = "mining.submit"
 )
 
 func DefaultLogger() *zap.Logger {
@@ -41,9 +42,10 @@ func DefaultConfig(logger *zap.Logger) StratumListenerConfig {
 
 func DefaultHandlers() StratumHandlerMap {
 	return StratumHandlerMap{
-		string(StratumMethodSubscribe): HandleSubscribe,
-		string(StratumMethodAuthorize): HandleAuthorize,
-		string(StratumMethodSubmit):    HandleSubmit,
+		string(StratumMethodSubscribe):           HandleSubscribe,
+		string(StratumMethodExtranonceSubscribe): HandleExtranonceSubscribe,
+		string(StratumMethodAuthorize):           HandleAuthorize,
+		string(StratumMethodSubmit):              HandleSubmit,
 	}
 }
 
@@ -95,6 +97,16 @@ func HandleSubscribe(ctx *StratumContext, event JsonRpcEvent) error {
 	}
 
 	ctx.Logger.Info("client subscribed ", zap.Any("context", ctx))
+	return nil
+}
+
+func HandleExtranonceSubscribe(ctx *StratumContext, event JsonRpcEvent) error {
+	err := ctx.Reply(NewResponse(event, true, nil))
+	if err != nil {
+		return errors.Wrap(err, "failed to send response to extranonce subscribe")
+	}
+
+	ctx.Logger.Info("client subscribed to extranonce ", zap.Any("context", ctx))
 	return nil
 }
 
