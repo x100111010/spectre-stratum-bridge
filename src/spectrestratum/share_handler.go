@@ -330,30 +330,16 @@ func GetAverageHashrateKHs(stats *WorkStats) float64 {
 }
 
 func stringifyHashrate(khs float64) string {
-	unitStrings := [...]string{"", "", "K", "M", "G", "T", "P", "E", "Z", "Y"}
-	var unit string
-	var hr float64
+	units := []string{"H/s", "KH/s", "MH/s", "GH/s", "TH/s", "PH/s", "EH/s", "ZH/s"}
+	hashrate := khs * 1000
+	i := 0
 
-	if khs*1000 < 1 {
-		hr = khs * 1000 * 1000
-		unit = unitStrings[0]
-	} else if khs < 1 {
-		hr = khs * 1000
-		unit = unitStrings[1]
-	} else if khs < 1000 {
-		hr = khs
-		unit = unitStrings[2]
-	} else {
-		for i, u := range unitStrings[3:] {
-			hr = khs / (float64(i) * 1000)
-			if hr < 1000 {
-				break
-			}
-			unit = u
-		}
+	for hashrate >= 1000 && i < len(units)-1 {
+		hashrate /= 1000
+		i++
 	}
 
-	return fmt.Sprintf("%0.2f%sH/s", hr, unit)
+	return fmt.Sprintf("%.2f %s", hashrate, units[i])
 }
 
 func (sh *shareHandler) startVardiffThread(expectedShareRate uint, logStats bool) error {
