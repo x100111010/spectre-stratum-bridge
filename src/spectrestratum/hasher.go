@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"hash"
-	"log"
 	"math/big"
 
 	"github.com/spectre-project/spectred/app/appmessage"
