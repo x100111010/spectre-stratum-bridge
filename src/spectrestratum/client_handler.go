@@ -3,7 +3,6 @@ package spectrestratum
 import (
 	"fmt"
 	"math"
-	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -13,8 +12,6 @@ import (
 	"github.com/spectre-project/spectre-stratum-bridge/src/gostratum"
 	"go.uber.org/zap"
 )
-
-var bigJobRegex = regexp.MustCompile(".*BzMiner.*")
 
 const balanceDelay = time.Minute
 
@@ -124,7 +121,6 @@ func (c *clientListener) NewBlockAvailable(sprApi *SpectreApi, soloMining bool) 
 			jobId := state.AddJob(template.Block)
 			if !state.initialized {
 				state.initialized = true
-				state.useBigJob = bigJobRegex.MatchString(client.RemoteApp)
 				// first pass through send config/default difficulty
 				state.stratumDiff = newSpectreDiff()
 				state.stratumDiff.setDiffValue(c.minShareDiff)
@@ -151,12 +147,8 @@ func (c *clientListener) NewBlockAvailable(sprApi *SpectreApi, soloMining bool) 
 			}
 
 			jobParams := []any{fmt.Sprintf("%d", jobId)}
-			if state.useBigJob {
-				jobParams = append(jobParams, GenerateLargeJobParams(header, uint64(template.Block.Header.Timestamp)))
-			} else {
-				jobParams = append(jobParams, GenerateJobHeader(header))
-				jobParams = append(jobParams, uint64(template.Block.Header.Timestamp))
-			}
+			jobParams = append(jobParams, GenerateJobHeader(header))
+			jobParams = append(jobParams, uint64(template.Block.Header.Timestamp))
 
 			// // normal notify flow
 			if err := client.Send(gostratum.JsonRpcEvent{

@@ -42,15 +42,6 @@ func TestHeaderSerialization(t *testing.T) {
 		log.Printf("%+v", jobs)
 	}
 
-	{ // job as single string (bzminer)
-		job := GenerateLargeJobParams(header, 1662696346)
-		expected := "853a0bb20ce86f2666da260099e3ab24bb4df7c83a9630e3f519f29a41142ed29abb1a6300000000"
-		if d := cmp.Diff(expected, job); d != "" {
-			t.Fatalf("jobs generated incorrectly: %s", d)
-		}
-		log.Printf("%+v", job)
-	}
-
 	// expected diff: 12617.375671633985 (approx)
 	diff := CalculateTarget(453325233)
 	little := BigDiffToLittle(&diff)

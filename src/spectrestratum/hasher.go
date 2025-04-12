@@ -137,26 +137,6 @@ func GenerateJobHeader(headerData []byte) []uint64 {
 	return final
 }
 
-func GenerateLargeJobParams(headerData []byte, timestamp uint64) string {
-	ids := []uint64{}
-	timestampBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(timestampBytes, timestamp)
-	ids = append(ids, uint64(binary.BigEndian.Uint64(headerData[0:])))
-	ids = append(ids, uint64(binary.BigEndian.Uint64(headerData[8:])))
-	ids = append(ids, uint64(binary.BigEndian.Uint64(headerData[16:])))
-	ids = append(ids, uint64(binary.BigEndian.Uint64(headerData[24:])))
-	ids = append(ids, uint64(binary.LittleEndian.Uint64(timestampBytes)))
-
-	str := fmt.Sprintf("%016x%016x%016x%016x%016x", ids[0], ids[1], ids[2], ids[3], ids[4])
-	if len(str) != 80 {
-		for _, v := range ids {
-			log.Printf("%016x", v)
-		}
-		log.Printf("%s : %d", str, len(str))
-	}
-	return str
-}
-
 var bi = big.NewInt(16777215)
 
 func CalculateTarget(bits uint64) big.Int {

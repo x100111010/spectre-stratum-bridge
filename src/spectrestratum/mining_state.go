@@ -17,7 +17,6 @@ type MiningState struct {
 	jobCounter  int
 	bigDiff     big.Int
 	initialized bool
-	useBigJob   bool
 	connectTime time.Time
 	stratumDiff *spectreDiff
 }

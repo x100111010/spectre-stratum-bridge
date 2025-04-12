@@ -174,18 +174,10 @@ func (sh *shareHandler) HandleSubmit(ctx *gostratum.StratumContext, event gostra
 	//ctx.Logger.Debug(submitInfo.block.Header.BlueScore, " submit ", submitInfo.noncestr)
 	state := GetMiningState(ctx)
 
-	if state.useBigJob {
-		submitInfo.nonceVal, err = strconv.ParseUint(submitInfo.noncestr, 16, 64)
-		if err != nil {
-			RecordWorkerError(ctx.WalletAddr, ErrBadDataFromMiner)
-			return errors.Wrap(err, "failed parsing noncestr")
-		}
-	} else {
-		submitInfo.nonceVal, err = strconv.ParseUint(submitInfo.noncestr, 16, 64)
-		if err != nil {
-			RecordWorkerError(ctx.WalletAddr, ErrBadDataFromMiner)
-			return errors.Wrap(err, "failed parsing noncestr")
-		}
+	submitInfo.nonceVal, err = strconv.ParseUint(submitInfo.noncestr, 16, 64)
+	if err != nil {
+		RecordWorkerError(ctx.WalletAddr, ErrBadDataFromMiner)
+		return errors.Wrap(err, "failed parsing noncestr")
 	}
 	stats := sh.getCreateStats(ctx)
 	if err := sh.checkStales(ctx, submitInfo); err != nil {
