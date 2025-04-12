@@ -99,14 +99,8 @@ func (sprApi *SpectreApi) waitForSync(verbose bool) error {
 }
 
 func (sprApi *SpectreApi) startBlockTemplateListener(ctx context.Context, blockReadyCb func()) {
-	blockReadyChan := make(chan bool)
-	err := sprApi.spectred.RegisterForNewBlockTemplateNotifications(func(_ *appmessage.NewBlockTemplateNotificationMessage) {
-		blockReadyChan <- true
-	})
-	if err != nil {
-		sprApi.logger.Error("fatal: failed to register for block notifications from spectre")
-	}
-
+	var blockReadyChan chan bool
+	restartChannel := true
 	ticker := time.NewTicker(sprApi.blockWaitTime)
 	for {
 		if err := sprApi.waitForSync(false); err != nil {
@@ -114,6 +108,18 @@ func (sprApi *SpectreApi) startBlockTemplateListener(ctx context.Context, blockR
 			if err := sprApi.reconnect(); err != nil {
 				sprApi.logger.Error("error reconnecting to spectred, waiting before retry: ", err)
 				time.Sleep(5 * time.Second)
+			}
+			restartChannel = true
+		}
+		if restartChannel {
+			blockReadyChan = make(chan bool)
+			err := sprApi.spectred.RegisterForNewBlockTemplateNotifications(func(_ *appmessage.NewBlockTemplateNotificationMessage) {
+				blockReadyChan <- true
+			})
+			if err != nil {
+				sprApi.logger.Error("fatal: failed to register for block notifications from spectre")
+			} else {
+				restartChannel = false
 			}
 		}
 		select {
