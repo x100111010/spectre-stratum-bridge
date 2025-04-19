@@ -123,11 +123,18 @@ func SendExtranonce(ctx *StratumContext) {
 	}
 }
 
-var walletRegex = regexp.MustCompile("(spectre|spectretest):[a-z0-9]+")
+var walletRegex = regexp.MustCompile("(spectre|spectretest|spectredev):[a-z0-9]+")
 
 func CleanWallet(in string) (string, error) {
-	if !strings.HasPrefix(in, "spectre:") && !strings.HasPrefix(in, "spectretest:") {
+	if !strings.HasPrefix(in, "spectre:") &&
+		!strings.HasPrefix(in, "spectretest:") &&
+		!strings.HasPrefix(in, "spectredev:") {
 		in = "spectre:" + in
+	}
+
+	// skip verification for spectredev address
+	if strings.HasPrefix(in, "spectredev:") {
+		return in, nil
 	}
 
 	if _, err := util.DecodeAddress(in, util.Bech32PrefixSpectre); err == nil {
