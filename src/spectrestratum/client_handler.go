@@ -149,6 +149,7 @@ func (c *clientListener) NewBlockAvailable(sprApi *SpectreApi, soloMining bool) 
 			jobParams := []any{fmt.Sprintf("%d", jobId)}
 			jobParams = append(jobParams, GenerateJobHeader(header))
 			jobParams = append(jobParams, uint64(template.Block.Header.Timestamp))
+			jobParams = append(jobParams, uint16(template.Block.Header.Version))
 
 			// // normal notify flow
 			if err := client.Send(gostratum.JsonRpcEvent{
