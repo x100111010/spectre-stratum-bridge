@@ -90,13 +90,13 @@ func (sh *shareHandler) getCreateStats(ctx *gostratum.StratumContext) *WorkStats
 }
 
 type submitInfo struct {
+	jobId    uint64
 	block    *appmessage.RPCBlock
-	state    *MiningState
 	noncestr string
 	nonceVal uint64
 }
 
-func validateSubmit(ctx *gostratum.StratumContext, event gostratum.JsonRpcEvent) (*submitInfo, error) {
+func validateSubmit(ctx *gostratum.StratumContext, state *MiningState, event gostratum.JsonRpcEvent) (*submitInfo, error) {
 	if len(event.Params) < 3 {
 		RecordWorkerError(ctx.WalletAddr, ErrBadDataFromMiner)
 		return nil, fmt.Errorf("malformed event, expected at least 2 params")
@@ -106,13 +106,12 @@ func validateSubmit(ctx *gostratum.StratumContext, event gostratum.JsonRpcEvent)
 		RecordWorkerError(ctx.WalletAddr, ErrBadDataFromMiner)
 		return nil, fmt.Errorf("unexpected type for param 1: %+v", event.Params...)
 	}
-	jobId, err := strconv.ParseInt(jobIdStr, 10, 0)
+	jobId, err := strconv.ParseUint(jobIdStr, 10, 0)
 	if err != nil {
 		RecordWorkerError(ctx.WalletAddr, ErrBadDataFromMiner)
 		return nil, errors.Wrap(err, "job id is not parsable as an number")
 	}
-	state := GetMiningState(ctx)
-	block, exists := state.GetJob(int(jobId))
+	block, exists := state.GetJob(jobId)
 	if !exists {
 		RecordWorkerError(ctx.WalletAddr, ErrMissingJob)
 		return nil, fmt.Errorf("job does not exist. stale?")
@@ -123,7 +122,7 @@ func validateSubmit(ctx *gostratum.StratumContext, event gostratum.JsonRpcEvent)
 		return nil, fmt.Errorf("unexpected type for param 2: %+v", event.Params...)
 	}
 	return &submitInfo{
-		state:    state,
+		jobId:    jobId,
 		block:    block,
 		noncestr: strings.Replace(noncestr, "0x", "", 1),
 	}, nil
@@ -134,7 +133,7 @@ var (
 	ErrDupeShare  = fmt.Errorf("duplicate share")
 )
 
-// the max difference between tip blue score and job blue score that we'll accept
+// max difference between tip blue score and job blue score that we'll accept
 // anything greater than this is considered a stale
 const workWindow = 8
 
@@ -157,7 +156,8 @@ func (sh *shareHandler) setSoloDiff(diff float64) {
 }
 
 func (sh *shareHandler) HandleSubmit(ctx *gostratum.StratumContext, event gostratum.JsonRpcEvent, soloMining bool) error {
-	submitInfo, err := validateSubmit(ctx, event)
+	state := GetMiningState(ctx)
+	submitInfo, err := validateSubmit(ctx, state, event)
 	if err != nil {
 		return err
 	}
@@ -172,13 +172,13 @@ func (sh *shareHandler) HandleSubmit(ctx *gostratum.StratumContext, event gostra
 	}
 
 	//ctx.Logger.Debug(submitInfo.block.Header.BlueScore, " submit ", submitInfo.noncestr)
-	state := GetMiningState(ctx)
 
 	submitInfo.nonceVal, err = strconv.ParseUint(submitInfo.noncestr, 16, 64)
 	if err != nil {
 		RecordWorkerError(ctx.WalletAddr, ErrBadDataFromMiner)
 		return errors.Wrap(err, "failed parsing noncestr")
 	}
+
 	stats := sh.getCreateStats(ctx)
 	if err := sh.checkStales(ctx, submitInfo); err != nil {
 		if err == ErrDupeShare {
