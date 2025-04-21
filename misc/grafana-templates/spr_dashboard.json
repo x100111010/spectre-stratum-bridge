@@ -726,7 +726,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": " avg(spr_network_difficulty_gauge) / 1000000000000",
+          "expr": " avg(spr_network_difficulty_gauge) / 1e9",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
