@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spectre-project/spectre-stratum-bridge/src/gostratum"
+	"github.com/spectre-project/spectre-stratum-bridge/src/utils"
 	"github.com/spectre-project/spectred/app/appmessage"
 	"github.com/spectre-project/spectred/domain/consensus/model/externalapi"
 	"github.com/spectre-project/spectred/domain/consensus/utils/consensushashing"
@@ -352,6 +354,7 @@ func (sh *shareHandler) startVardiffThread(expectedShareRate uint, logStats bool
 	//   < 5% variation after 4h
 	var windows = [...]uint{1, 3, 10, 30, 60, 240, 0}
 	var tolerances = [...]float64{1, 0.5, 0.25, 0.15, 0.1, 0.05, 0.05}
+	var bws = &utils.BufferedWriteSyncer{WS: os.Stdout, FlushInterval: varDiffThreadSleep * time.Second}
 
 	for {
 		time.Sleep(varDiffThreadSleep * time.Second)
@@ -437,7 +440,7 @@ func (sh *shareHandler) startVardiffThread(expectedShareRate uint, logStats bool
 		stats += "\n\n======================================================== spr_bridge_" + version + " ===\n"
 		stats += strings.Join(toleranceErrs, "\n")
 		if logStats {
-			log.Println(stats)
+			bws.Write([]byte(stats))
 		}
 
 		// sh.statsLock.Unlock()
