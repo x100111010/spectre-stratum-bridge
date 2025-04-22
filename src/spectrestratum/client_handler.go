@@ -10,6 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spectre-project/spectre-stratum-bridge/src/gostratum"
+	"github.com/spectre-project/spectred/app/appmessage"
 	"go.uber.org/zap"
 )
 
@@ -82,34 +83,46 @@ func (c *clientListener) OnDisconnect(ctx *gostratum.StratumContext) {
 
 func (c *clientListener) NewBlockAvailable(sprApi *SpectreApi, soloMining bool) {
 	c.clientLock.Lock()
+	templates := make(map[*gostratum.StratumContext]*appmessage.GetBlockTemplateResponseMessage)
+	for _, client := range c.clients {
+		if !client.Connected() {
+			continue
+		}
+
+		state := GetMiningState(client)
+		if client.WalletAddr == "" {
+			if time.Since(state.connectTime) > time.Second*10 {
+				// timeout passed
+				// this happens pretty frequently in gcp/aws land since
+				// script-kiddies scrape ports
+				client.Logger.Warn("client misconfigured, no miner address specified - disconnecting", zap.String("client", client.String()))
+				RecordWorkerError(client.WalletAddr, ErrNoMinerAddress)
+				client.Disconnect()
+			}
+			continue
+		}
+		template, err := sprApi.GetBlockTemplate(client)
+		if err != nil {
+			if strings.Contains(err.Error(), "Could not decode address") {
+				RecordWorkerError(client.WalletAddr, ErrInvalidAddressFmt)
+				client.Logger.Error(fmt.Sprintf("failed fetching new block template from spectre, malformed address: %s", err))
+				client.Disconnect()
+			} else {
+				RecordWorkerError(client.WalletAddr, ErrFailedBlockFetch)
+				client.Logger.Error(fmt.Sprintf("failed fetching new block template from spectre: %s", err))
+			}
+			continue
+		}
+
+		templates[client] = template
+	}
 	addresses := make([]string, 0, len(c.clients))
-	for _, cl := range c.clients {
+	for cl, t := range templates {
 		if !cl.Connected() {
 			continue
 		}
-		go func(client *gostratum.StratumContext) {
+		go func(client *gostratum.StratumContext, template *appmessage.GetBlockTemplateResponseMessage) {
 			state := GetMiningState(client)
-			if client.WalletAddr == "" {
-				if time.Since(state.connectTime) > time.Second*20 { // timeout passed
-					// this happens pretty frequently in gcp/aws land since script-kiddies scrape ports
-					client.Logger.Warn("client misconfigured, no miner address specified - disconnecting", zap.String("client", client.String()))
-					RecordWorkerError(client.WalletAddr, ErrNoMinerAddress)
-					client.Disconnect() // invalid configuration, boot the worker
-				}
-				return
-			}
-			template, err := sprApi.GetBlockTemplate(client)
-			if err != nil {
-				if strings.Contains(err.Error(), "Could not decode address") {
-					RecordWorkerError(client.WalletAddr, ErrInvalidAddressFmt)
-					client.Logger.Error(fmt.Sprintf("failed fetching new block template from spectre, malformed address: %s", err))
-					client.Disconnect() // unrecoverable
-				} else {
-					RecordWorkerError(client.WalletAddr, ErrFailedBlockFetch)
-					client.Logger.Error(fmt.Sprintf("failed fetching new block template from spectre: %s", err))
-				}
-				return
-			}
 			state.bigDiff = CalculateTarget(uint64(template.Block.Header.Bits))
 			header, err := SerializeBlockHeader(template.Block)
 			if err != nil {
@@ -167,7 +180,7 @@ func (c *clientListener) NewBlockAvailable(sprApi *SpectreApi, soloMining bool) 
 			}
 
 			RecordNewJob(client)
-		}(cl)
+		}(cl, t)
 
 		if cl.WalletAddr != "" {
 			addresses = append(addresses, cl.WalletAddr)
