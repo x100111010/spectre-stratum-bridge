@@ -17,7 +17,7 @@ import (
 	"github.com/spectre-project/spectred/app/appmessage"
 	"github.com/spectre-project/spectred/domain/consensus/model/externalapi"
 	"github.com/spectre-project/spectred/domain/consensus/utils/consensushashing"
-	"github.com/spectre-project/spectred/domain/consensus/utils/pow"
+	// "github.com/spectre-project/spectred/domain/consensus/utils/pow"
 	"github.com/spectre-project/spectred/infrastructure/network/rpcclient"
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
@@ -208,28 +208,30 @@ func (sh *shareHandler) HandleSubmit(ctx *gostratum.StratumContext, event gostra
 	mutableHeader := converted.Header.ToMutable()
 	mutableHeader.SetNonce(submitInfo.nonceVal)
 
-	powState := pow.NewState(mutableHeader)
-	powValue := powState.CalculateProofOfWorkValue()
+	/*
+		powState := pow.NewState(mutableHeader)
+		powValue := powState.CalculateProofOfWorkValue()
 
-	// The block hash must be less or equal than the claimed target.
-	if powValue.Cmp(&powState.Target) <= 0 {
-		if err := sh.submit(ctx, converted, submitInfo.nonceVal, event.Id); err != nil {
-			return err
+		// The block hash must be less or equal than the claimed target.
+		if powValue.Cmp(&powState.Target) <= 0 {
+			if err := sh.submit(ctx, converted, submitInfo.nonceVal, event.Id); err != nil {
+				return err
+			}
+		} else if powValue.Cmp(state.stratumDiff.targetValue) >= 0 {
+			if soloMining {
+				ctx.Logger.Warn("weak block")
+			} else {
+				ctx.Logger.Warn("weak share")
+			}
+			ctx.Logger.Warn(fmt.Sprintf("Net Target: %s\n", powState.Target.String()))
+			ctx.Logger.Warn(fmt.Sprintf("Stratum Target: %s\n", state.stratumDiff.targetValue.String()))
+			ctx.Logger.Warn(fmt.Sprintf("PowValue: %064x\n", powValue.Bytes()))
+			stats.InvalidShares.Add(1)
+			sh.overall.InvalidShares.Add(1)
+			RecordWeakShare(ctx)
+			return ctx.ReplyLowDiffShare(event.Id)
 		}
-	} else if powValue.Cmp(state.stratumDiff.targetValue) >= 0 {
-		if soloMining {
-			ctx.Logger.Warn("weak block")
-		} else {
-			ctx.Logger.Warn("weak share")
-		}
-		ctx.Logger.Warn(fmt.Sprintf("Net Target: %s\n", powState.Target.String()))
-		ctx.Logger.Warn(fmt.Sprintf("Stratum Target: %s\n", state.stratumDiff.targetValue.String()))
-		ctx.Logger.Warn(fmt.Sprintf("PowValue: %064x\n", powValue.Bytes()))
-		stats.InvalidShares.Add(1)
-		sh.overall.InvalidShares.Add(1)
-		RecordWeakShare(ctx)
-		return ctx.ReplyLowDiffShare(event.Id)
-	}
+	*/
 
 	stats.SharesFound.Add(1)
 	stats.VarDiffSharesFound.Add(1)
@@ -242,6 +244,8 @@ func (sh *shareHandler) HandleSubmit(ctx *gostratum.StratumContext, event gostra
 		Id:     event.Id,
 		Result: true,
 	})
+
+	return nil
 }
 
 func (sh *shareHandler) submit(ctx *gostratum.StratumContext,
