@@ -9,7 +9,7 @@ import (
 	"github.com/spectre-project/spectred/app/appmessage"
 )
 
-const maxjobs = 300
+const maxjobs = 256
 
 type MiningState struct {
 	Jobs        map[uint64]*appmessage.RPCBlock
