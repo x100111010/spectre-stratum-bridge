@@ -129,8 +129,10 @@ func ListenAndServe(cfg BridgeConfig) error {
 	}
 
 	if cfg.PrintStats {
-		go shareHandler.startStatsThread()
+		go shareHandler.startPrintStatsThread()
 	}
+
+	go shareHandler.startPruneStatsThread(cfg.SoloMining)
 
 	return gostratum.NewListener(stratumConfig).Listen(context.Background())
 }

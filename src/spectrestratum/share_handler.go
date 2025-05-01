@@ -287,15 +287,41 @@ func (sh *shareHandler) submit(ctx *gostratum.StratumContext,
 	return nil
 }
 
-func (sh *shareHandler) startStatsThread() error {
+func (sh *shareHandler) startPruneStatsThread(soloMining bool) error {
+	for {
+		time.Sleep(60 * time.Second)
+
+		sh.statsLock.Lock()
+		for k, v := range sh.stats {
+			if soloMining {
+				// for solo mining prune after 12h
+				if time.Since(v.LastShare).Hours() > 12 {
+					delete(sh.stats, k)
+					continue
+				}
+			} else {
+				// delete client stats if no shares since connect after 3m, or if
+				// last share was > 10m ago
+				if (v.SharesFound.Load() == 0 && time.Since(v.LastShare).Seconds() > 180) ||
+					time.Since(v.LastShare).Seconds() > 600 {
+					delete(sh.stats, k)
+					continue
+				}
+			}
+		}
+		sh.statsLock.Unlock()
+	}
+}
+
+func (sh *shareHandler) startPrintStatsThread() error {
 	start := time.Now()
 	for {
 		// console formatting is terrible. Good luck whever touches anything
 		time.Sleep(10 * time.Second)
 
-		// don't like locking entire stats struct - risk should be negligible
+		// don't like locking entire stats struct
 		// if mutex is ultimately needed, should move to one per client
-		// sh.statsLock.Lock()
+		sh.statsLock.Lock()
 
 		str := "\n===============================================================================\n"
 		str += "  worker name   |  avg hashrate  |   acc/stl/inv  |    blocks    |    uptime\n"
@@ -322,7 +348,7 @@ func (sh *shareHandler) startStatsThread() error {
 		str += "\n-------------------------------------------------------------------------------\n"
 		str += " Est. Network Hashrate: " + stringifyHashrate(DiffToHash(sh.soloDiff))
 		str += "\n======================================================== spr_bridge_" + version + " ===\n"
-		// sh.statsLock.Unlock()
+		sh.statsLock.Unlock()
 		log.Println(str)
 	}
 }
@@ -359,9 +385,9 @@ func (sh *shareHandler) startVardiffThread(expectedShareRate uint, logStats bool
 	for {
 		time.Sleep(varDiffThreadSleep * time.Second)
 
-		// don't like locking entire stats struct - risk should be negligible
+		// don't like locking entire stats struct
 		// if mutex is ultimately needed, should move to one per client
-		// sh.statsLock.Lock()
+		sh.statsLock.Lock()
 
 		stats := "\n=== vardiff ===================================================================\n\n"
 		stats += "  worker name  |    diff     |  window  |  elapsed   |    shares   |   rate    \n"
@@ -443,7 +469,7 @@ func (sh *shareHandler) startVardiffThread(expectedShareRate uint, logStats bool
 			bws.Write([]byte(stats))
 		}
 
-		// sh.statsLock.Unlock()
+		sh.statsLock.Unlock()
 	}
 }
 
