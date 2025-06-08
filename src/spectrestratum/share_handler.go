@@ -58,6 +58,9 @@ func newShareHandler(spectre *rpcclient.RPCClient) *shareHandler {
 }
 
 func (sh *shareHandler) getCreateStats(ctx *gostratum.StratumContext) *WorkStats {
+	if ctx.WalletAddr == "" {
+		return nil
+	}
 	sh.statsLock.Lock()
 	var stats *WorkStats
 	found := false
